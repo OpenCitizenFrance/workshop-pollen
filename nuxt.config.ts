@@ -27,8 +27,18 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'fr' },
       meta: [
         { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'color-scheme', content: 'light' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'color-scheme', content: 'light dark' },
+        { name: 'theme-color', content: '#50228F' },
+      ],
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap' },
+      ],
+      // Anti-flash : pose data-theme sur <html> avant le premier paint (lit localStorage / préférence système).
+      script: [
+        { tagPosition: 'head', innerHTML: "try{var t=localStorage.getItem('cockpit-atelier:theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t}catch(e){}" },
       ],
     },
   },
