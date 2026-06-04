@@ -16,9 +16,11 @@ export default defineNuxtConfig({
   // Si vides → l'app reste en localStorage pur (mode local, hors-ligne).
   runtimeConfig: {
     public: {
-      supabaseUrl: '',       // ← NUXT_PUBLIC_SUPABASE_URL
-      supabaseAnonKey: '',   // ← NUXT_PUBLIC_SUPABASE_ANON_KEY (le nom doit matcher exactement)
-      boardId: 'default',    // ← NUXT_PUBLIC_BOARD_ID (cloisonner plusieurs ateliers)
+      // Tolérant à tous les noms d'env courants (avec/sans préfixe NUXT_PUBLIC_, NEXT_PUBLIC_,
+      // intégration Supabase↔Vercel). Lu au build ; Vercel fournit les vars au build.
+      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      boardId: process.env.NUXT_PUBLIC_BOARD_ID || 'default',
     },
   },
   app: {
