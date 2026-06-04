@@ -16,9 +16,9 @@ export default defineNuxtConfig({
   // Si vides → l'app reste en localStorage pur (mode local, hors-ligne).
   runtimeConfig: {
     public: {
-      supabaseUrl: '',
-      supabaseKey: '',
-      boardId: 'default',   // NUXT_PUBLIC_BOARD_ID pour cloisonner plusieurs ateliers
+      supabaseUrl: '',       // ← NUXT_PUBLIC_SUPABASE_URL
+      supabaseAnonKey: '',   // ← NUXT_PUBLIC_SUPABASE_ANON_KEY (le nom doit matcher exactement)
+      boardId: 'default',    // ← NUXT_PUBLIC_BOARD_ID (cloisonner plusieurs ateliers)
     },
   },
   app: {

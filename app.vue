@@ -233,10 +233,10 @@ function schedulePush () {
   pushTimer = setTimeout(pushBoard, 400)
 }
 async function initSharedMode () {
-  if (!publicCfg.supabaseUrl || !publicCfg.supabaseKey) return   // → mode local
+  if (!publicCfg.supabaseUrl || !publicCfg.supabaseAnonKey) return   // → mode local
   try {
     const { createClient } = await import('@supabase/supabase-js')
-    supa = createClient(publicCfg.supabaseUrl, publicCfg.supabaseKey)
+    supa = createClient(publicCfg.supabaseUrl, publicCfg.supabaseAnonKey)
     boardKey = publicCfg.boardId || 'default'
     clientId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('c' + Date.now())
     sharedMode.value = true
