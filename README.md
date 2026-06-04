@@ -39,9 +39,9 @@ Le projet est un Nuxt 3 standard : Vercel le détecte sans configuration.
 1. Pousser ce repo sur GitHub (voir ci-dessous).
 2. Sur [vercel.com](https://vercel.com) → **New Project** → importer le repo → **Deploy**. C’est tout.
 
-> Aucune base de données n’est requise : les données vivent dans le navigateur (`localStorage`).
-> Chaque participant qui ouvre l’URL a donc **son propre tableau**. Pour un **tableau partagé en
-> temps réel** entre tous les participants, il faut brancher Supabase (voir plus bas / à activer).
+> Sans configuration, les données vivent dans le navigateur (`localStorage`) : chaque
+> participant a **son propre tableau**, et l’app marche hors-ligne. Pour un **tableau
+> partagé en temps réel** entre tous (recommandé pour l’atelier), branche Supabase ci-dessous.
 
 Build statique alternatif (n’importe quel hébergeur) : `npm run generate` → `.output/public`.
 
@@ -57,6 +57,25 @@ gh repo create cockpit-atelier --private --source=. --push
 git remote add origin git@github.com:<ton-compte>/cockpit-atelier.git
 git push -u origin main
 ```
+
+## Board partagé en temps réel (Supabase)
+
+Optionnel mais recommandé pour l’atelier : tout le monde édite le **même tableau**, synchronisé en direct.
+Tant que les clés ne sont pas là, l’app reste en mode local (aucun changement, aucune panne possible).
+
+1. **Crée un projet** sur [supabase.com](https://supabase.com) (le plan gratuit suffit).
+2. **SQL Editor** → colle et exécute le contenu de [`supabase.sql`](./supabase.sql) (crée la table `boards`, active Realtime, ouvre l’accès).
+3. **Settings → API** → copie l’**URL du projet** et la clé **anon public**.
+4. Renseigne-les comme variables d’environnement :
+   - **En local** : `cp .env.example .env` puis remplis les valeurs.
+   - **Sur Vercel** : Project → Settings → Environment Variables → ajoute
+     `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_ANON_KEY` → **Redeploy**.
+5. Recharge : un badge **« ● Partagé »** apparaît dans l’en-tête quand la synchro est active.
+
+**Bon à savoir**
+- Le board est **ouvert** : quiconque a l’URL peut éditer (c’est le but en atelier). N’y mets pas de données sensibles.
+- Modèle de synchro : un document JSONB partagé, *dernier écrit gagne* sur l’ensemble — parfait pour un atelier piloté. Pour de l’édition concurrente fine (une ligne par carte), c’est une évolution simple à demander.
+- Plusieurs ateliers en parallèle : donne un `NUXT_PUBLIC_BOARD_ID` différent à chacun.
 
 ## Police
 

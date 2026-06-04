@@ -11,6 +11,16 @@
 export default defineNuxtConfig({
   devtools: { enabled: false },     // écran de projection propre
   devServer: { port: 3030 },        // évite un éventuel conflit avec d'autres projets locaux
+  // Clés Supabase (publiques). Remplies par les variables d'env Vercel :
+  //   NUXT_PUBLIC_SUPABASE_URL  /  NUXT_PUBLIC_SUPABASE_ANON_KEY
+  // Si vides → l'app reste en localStorage pur (mode local, hors-ligne).
+  runtimeConfig: {
+    public: {
+      supabaseUrl: '',
+      supabaseKey: '',
+      boardId: 'default',   // NUXT_PUBLIC_BOARD_ID pour cloisonner plusieurs ateliers
+    },
+  },
   app: {
     head: {
       title: "Cockpit d'atelier — Cadrage IA / Tech",

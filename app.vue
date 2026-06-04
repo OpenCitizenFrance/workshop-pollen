@@ -180,6 +180,7 @@ onMounted(() => {
     }
   } catch (e) {}
   loaded = true
+  initSharedMode()   // bascule en board partagé si Supabase est configuré
 })
 
 // Persistance : à chaque changement, on réécrit localStorage. Un refresh ne perd rien.
@@ -192,6 +193,68 @@ watch([stackNodes, stackEdges], () => {
   if (!loaded) return
   try { localStorage.setItem(STACK_KEY, JSON.stringify({ nodes: stackNodes.value, edges: stackEdges.value })) } catch (e) {}
 }, { deep: true })
+
+/* ── Board partagé en temps réel (Supabase, optionnel) ─────────────────────
+   Sans clés → l'app reste 100% locale (localStorage). Avec clés → un document
+   JSONB partagé `boards/<boardId>` est synchronisé via Realtime. Garde-fou
+   anti-boucle : on tamponne chaque écriture d'un client_id et on ignore l'écho
+   de ses propres writes. Le localStorage sert de cache hors-ligne en parallèle. */
+const publicCfg = useRuntimeConfig().public
+const sharedMode = ref(false)   // Supabase configuré
+const online = ref(false)       // souscription temps réel active
+let supa = null
+let clientId = 'c'
+let boardKey = 'default'
+let applyingRemote = false
+let pushTimer = null
+
+function boardDoc () {
+  return { cards: cards.value, stack: { nodes: stackNodes.value, edges: stackEdges.value } }
+}
+function applyRemote (doc) {
+  if (!doc) return
+  applyingRemote = true
+  if (Array.isArray(doc.cards)) cards.value = doc.cards.map(normalize)
+  if (doc.stack && Array.isArray(doc.stack.nodes)) stackNodes.value = doc.stack.nodes
+  if (doc.stack && Array.isArray(doc.stack.edges)) stackEdges.value = doc.stack.edges
+  nextTick(() => { applyingRemote = false })
+}
+async function pushBoard () {
+  if (!supa) return
+  try {
+    await supa.from('boards').upsert({
+      id: boardKey, data: boardDoc(), last_writer: clientId, updated_at: new Date().toISOString(),
+    })
+  } catch (e) { /* hors-ligne : localStorage garde la copie, on repoussera au prochain edit */ }
+}
+function schedulePush () {
+  if (!sharedMode.value || applyingRemote) return
+  clearTimeout(pushTimer)
+  pushTimer = setTimeout(pushBoard, 400)
+}
+async function initSharedMode () {
+  if (!publicCfg.supabaseUrl || !publicCfg.supabaseKey) return   // → mode local
+  try {
+    const { createClient } = await import('@supabase/supabase-js')
+    supa = createClient(publicCfg.supabaseUrl, publicCfg.supabaseKey)
+    boardKey = publicCfg.boardId || 'default'
+    clientId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('c' + Date.now())
+    sharedMode.value = true
+    // État distant ; s'il n'existe pas encore, on l'amorce avec l'état local.
+    const { data } = await supa.from('boards').select('data').eq('id', boardKey).maybeSingle()
+    if (data && data.data && Array.isArray(data.data.cards)) applyRemote(data.data)
+    else await pushBoard()
+    supa.channel('board-' + boardKey)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'boards', filter: 'id=eq.' + boardKey }, (payload) => {
+        const row = payload.new
+        if (!row || row.last_writer === clientId) return   // ignore son propre écho
+        applyRemote(row.data)
+      })
+      .subscribe((status) => { online.value = (status === 'SUBSCRIBED') })
+  } catch (e) { sharedMode.value = false; online.value = false }
+}
+// Pousse (débouncé) tout changement local vers le board partagé.
+watch([cards, stackNodes, stackEdges], schedulePush, { deep: true })
 
 /* ── Actions ───────────────────────────────────────────────────────────── */
 function addCard () {
@@ -524,6 +587,9 @@ function pct (val) { return (((val - 1) / 4) * 100) }
         </div>
       </div>
 
+      <div v-if="sharedMode" class="sync-pill" :class="{ on: online }" :title="online ? 'Board partagé en temps réel' : 'Connexion au board partagé…'">
+        <span class="sync-dot" />{{ online ? 'Partagé' : 'Connexion…' }}
+      </div>
       <button class="btn-ghost danger" @click="showReset = true">Réinitialiser</button>
     </header>
 
@@ -1171,6 +1237,12 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.02em; }
 .count-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
 .count-pill b { color: var(--ink); }
 .count-pill .pl { color: var(--muted); }
+
+.sync-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 540; color: var(--accent-strong); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 24%, white); white-space: nowrap; }
+.sync-pill.on { color: #0E7A5F; background: #E7F7F0; border-color: #BFE8D8; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.sync-pill.on .sync-dot { background: #12A150; box-shadow: 0 0 0 3px rgba(18,161,80,.15); animation: syncpulse 2s ease-in-out infinite; }
+@keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
 
 /* ── Boutons génériques ─────────────────────────────────────────────────── */
 .btn-primary, .btn-dark, .btn-ghost {
