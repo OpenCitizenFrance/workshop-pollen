@@ -10,6 +10,12 @@ const STORAGE_KEY = 'cockpit-atelier:v1'
 
 const EQUIPES = ['Ops', 'Sales', 'Tech', 'Transverse']
 
+// Référents (owners) qui portent un cas d'usage. null = pas encore assigné.
+const OWNERS = ['Olivier', 'Axel', 'Pierre', 'Georges']
+// Couleur d'identité par owner → repère visuel cohérent dans toutes les vues.
+const OWNER_COLORS = { Olivier: '#6366F1', Axel: '#F59E0B', Pierre: '#F43F5E', Georges: '#14B8A6' }
+function ownerColor (name) { return OWNER_COLORS[name] || '#71717A' }
+
 // Les 3 types de réponse — couleur cohérente reprise dans TOUTES les vues.
 // Hybride (violet) = le mélange Software (bleu) + GenAI (vert).
 const TYPES = {
@@ -92,11 +98,11 @@ const KIND_BY_GROUP = { src: 'source', orch: 'hub', data: 'store', apps: 'app' }
 // Contenu pré-chargé — éditable / supprimable, point de départ de l'atelier.
 function seedCards () {
   return [
-    { id: uid(), titre: 'Production de cours', description: 'Industrialiser la création de supports de formation.', equipe: 'Ops', type: 'GenAI', douleur: 4, impact: 5, effort: 4, confiance: 3, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'supabase', 'n8n', 'datalake', 'vector', 'agents'] },
-    { id: uid(), titre: 'Génération de propositions commerciales', description: 'Assemblage assisté des propales (socle Software + génération, déjà avancé, encore lent).', equipe: 'Sales', type: 'Both', douleur: 4, impact: 4, effort: 3, confiance: 4, sequence: 'backlog', start: null, duration: 2, sources: ['airtable', 'n8n', 'datalake', 'supabase', 'vector', 'agents', 'apps'] },
-    { id: uid(), titre: 'Recherche universelle dans les données', description: 'Recherche transverse dans toutes les sources (déjà partiellement en place).', equipe: 'Transverse', type: 'Software', douleur: 3, impact: 3, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'airtable', 'datalake', 'supabase', 'vector'] },
-    { id: uid(), titre: 'Hygiène & pratiques IA sur la codebase', description: 'Bonnes pratiques IA pour le dev — quick win.', equipe: 'Tech', type: 'Software', douleur: 3, impact: 4, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: [] },
-    { id: uid(), titre: 'Fraîcheur du Data Lake / synchro sources', description: 'Synchronisation déterministe des sources de données.', equipe: 'Tech', type: 'Software', douleur: 2, impact: 3, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'airtable', 'supabase', 'n8n', 'datalake'] },
+    { id: uid(), titre: 'Production de cours', description: 'Industrialiser la création de supports de formation.', equipe: 'Ops', type: 'GenAI', douleur: 4, impact: 5, effort: 4, confiance: 3, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'supabase', 'n8n', 'datalake', 'vector', 'agents'], details: 'Objectif : passer de ~3 j à <1 j pour produire un module complet.\n\nEntrées : trame pédagogique, slides existants, transcripts d’ateliers.\nSorties : support stagiaire + guide animateur + quiz.\n\nGarde-fou : relecture humaine obligatoire avant diffusion (ton éditorial, droits sur les visuels).' },
+    { id: uid(), titre: 'Génération de propositions commerciales', description: 'Assemblage assisté des propales (socle Software + génération, déjà avancé, encore lent).', equipe: 'Sales', type: 'Both', douleur: 4, impact: 4, effort: 3, confiance: 4, sequence: 'backlog', start: null, duration: 2, sources: ['airtable', 'n8n', 'datalake', 'supabase', 'vector', 'agents', 'apps'], details: 'Socle Software déjà en place (assemblage des propales) + brique générative pour la note d’intention.\n\nDouleur restante : ~30 min de mise en forme manuelle par propale.\nProchaine étape : templating Pollen automatique + génération du résumé exécutif.' },
+    { id: uid(), titre: 'Recherche universelle dans les données', description: 'Recherche transverse dans toutes les sources (déjà partiellement en place).', equipe: 'Transverse', type: 'Software', douleur: 3, impact: 3, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'airtable', 'datalake', 'supabase', 'vector'], details: 'Recherche transverse Drive + Firebase + Airtable, déjà partiellement en place (index plein-texte).\n\nManque : classement par pertinence et respect des permissions par source.' },
+    { id: uid(), titre: 'Hygiène & pratiques IA sur la codebase', description: 'Bonnes pratiques IA pour le dev — quick win.', equipe: 'Tech', type: 'Software', douleur: 3, impact: 4, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: [], details: 'Quick win équipe Tech.\nConventions de prompts, revues de code assistées, garde-fous (aucun secret dans les prompts).\nFormat : 1 atelier + checklist partagée.' },
+    { id: uid(), titre: 'Fraîcheur du Data Lake / synchro sources', description: 'Synchronisation déterministe des sources de données.', equipe: 'Tech', type: 'Software', douleur: 2, impact: 3, effort: 2, confiance: 5, sequence: 'backlog', start: null, duration: 2, sources: ['drive', 'firebase', 'airtable', 'supabase', 'n8n', 'datalake'], details: 'Synchronisation déterministe des sources vers le Data Lake.\nFréquence cible : horaire.\nSupervision : alerte si une source décroche > 2 h.' },
   ]
 }
 
@@ -112,6 +118,8 @@ function normalize (c) {
     start: Number.isInteger(c.start) ? c.start : null,   // mois absolu de début sur la roadmap, ou null (non planifié)
     duration: clampDur(c.duration),                       // durée en mois
     sources: Array.isArray(c.sources) ? c.sources.filter(s => typeof s === 'string') : [],  // ids des blocs de la stack requis
+    owner: OWNERS.includes(c.owner) ? c.owner : null,   // référent du cas d'usage, ou null si non assigné
+    details: typeof c.details === 'string' ? c.details : '',  // description longue (multi-ligne, collable) — éditée dans la modale
   }
 }
 
@@ -128,6 +136,7 @@ const tabs = [
 
 const filterEquipe = ref('all')
 const filterType = ref('all')
+const filterOwner = ref('all')   // 'all' | nom d'owner | 'none' (non assignés)
 
 const draft = reactive({ titre: '', description: '', equipe: 'Ops', type: 'Software' })
 const titreInput = ref(null)
@@ -271,6 +280,8 @@ function addCard () {
     type: draft.type,
     douleur: 3, impact: 3, effort: 3, confiance: 3,
     sequence: 'backlog', start: null, duration: 2, sources: [],
+    owner: null,
+    details: '',
   })
   draft.titre = ''
   draft.description = ''
@@ -288,6 +299,35 @@ function addSourceTo (c, id) { if (!id) return; if (!Array.isArray(c.sources)) c
 function removeSourceFrom (c, id) { if (Array.isArray(c.sources)) c.sources = c.sources.filter(s => s !== id) }
 function availableSources (c) { const have = new Set(c.sources || []); return stackNodes.value.filter(n => !have.has(n.id)) }
 
+/* ── Détails d'un cas d'usage — éditeur focalisé (modale) ──────────────────
+   On édite directement `card.details` via v-model : le watch deep persiste
+   tout seul (localStorage + push Supabase). La modale n'est qu'une surface
+   d'édition confortable pour rédiger / coller un texte long. */
+const detailCardId = ref(null)
+const detailCard = computed(() => cards.value.find(c => c.id === detailCardId.value) || null)
+const detailInput = ref(null)       // ref du <textarea> → autofocus à l'ouverture
+const detailCopied = ref(false)     // feedback transitoire du bouton « Copier »
+function openDetails (id) {
+  detailCardId.value = id
+  detailCopied.value = false
+  nextTick(() => detailInput.value?.focus())
+}
+function closeDetails () { detailCardId.value = null }
+async function copyDetails () {
+  const txt = detailCard.value?.details || ''
+  if (!txt.trim()) return
+  try {
+    await navigator.clipboard.writeText(txt)
+    detailCopied.value = true
+    setTimeout(() => { detailCopied.value = false }, 1600)
+  } catch (e) { /* presse-papier indisponible (http non sécurisé) → on ignore */ }
+}
+// Aperçu une ligne affiché sur la carte : on aplatit les retours à la ligne.
+function detailPreview (text) {
+  const t = (text || '').replace(/\s+/g, ' ').trim()
+  return t.length > 90 ? t.slice(0, 90) + '…' : t
+}
+
 function doReset () {
   cards.value = seedCards()
   stackNodes.value = STACK_NODES.map(n => ({ ...n }))
@@ -297,6 +337,7 @@ function doReset () {
   stackSelectedNodeId.value = null
   filterEquipe.value = 'all'
   filterType.value = 'all'
+  filterOwner.value = 'all'
   showReset.value = false
 }
 
@@ -507,7 +548,8 @@ const convergence = computed(() => stackNodes.value
 /* ── Dérivés ───────────────────────────────────────────────────────────── */
 const filtered = computed(() => cards.value.filter(c =>
   (filterEquipe.value === 'all' || c.equipe === filterEquipe.value) &&
-  (filterType.value === 'all' || c.type === filterType.value)
+  (filterType.value === 'all' || c.type === filterType.value) &&
+  (filterOwner.value === 'all' || (filterOwner.value === 'none' ? !c.owner : c.owner === filterOwner.value))
 ))
 
 const counts = computed(() => {
@@ -682,6 +724,17 @@ function pct (val) { return (((val - 1) / 4) * 100) }
               ><span class="tdot" :style="{ background: typeColor(t) }" />{{ typeLabel(t) }}</button>
             </div>
           </div>
+          <div class="filter-grp">
+            <span class="f-lbl">Owner</span>
+            <div class="chips">
+              <button class="chip" :class="{ on: filterOwner === 'all' }" @click="filterOwner = 'all'">Tous</button>
+              <button
+                v-for="o in OWNERS" :key="o" class="chip" :class="{ on: filterOwner === o }"
+                @click="filterOwner = o"
+              ><span class="ava xs" :style="{ background: ownerColor(o) }">{{ o[0] }}</span>{{ o }}</button>
+              <button class="chip" :class="{ on: filterOwner === 'none' }" @click="filterOwner = 'none'">Non assigné</button>
+            </div>
+          </div>
           <span class="result-count">{{ filtered.length }} / {{ counts.total }}</span>
         </div>
 
@@ -695,11 +748,23 @@ function pct (val) { return (((val - 1) / 4) * 100) }
             <div class="card-main">
               <div class="card-head">
                 <input v-model="c.titre" class="c-titre" type="text" placeholder="Titre" />
+                <button
+                  class="c-notes" :class="{ has: !!(c.details || '').trim() }"
+                  @click="openDetails(c.id)"
+                  :title="(c.details || '').trim() ? 'Voir / éditer les détails' : 'Ajouter des détails'"
+                  aria-label="Détails du cas d’usage"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6" /></svg>
+                </button>
                 <button class="x" @click="removeCard(c.id)" aria-label="Supprimer">
                   <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" /></svg>
                 </button>
               </div>
               <input v-model="c.description" class="c-desc" type="text" placeholder="Description courte…" />
+              <button
+                v-if="(c.details || '').trim()" type="button" class="c-detail-preview"
+                @click="openDetails(c.id)" title="Voir les détails"
+              >{{ detailPreview(c.details) }}</button>
 
               <div class="card-meta">
                 <select v-model="c.equipe" class="mini-select">
@@ -707,6 +772,10 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                 </select>
                 <select v-model="c.type" class="mini-select type" :style="{ '--c': typeColor(c.type) }">
                   <option v-for="t in TYPE_ORDER" :key="t" :value="t">{{ typeLabel(t) }}</option>
+                </select>
+                <select v-model="c.owner" class="mini-select owner" :class="{ assigned: !!c.owner }" :style="c.owner ? { '--c': ownerColor(c.owner) } : null" title="Owner du cas d'usage">
+                  <option :value="null">Owner —</option>
+                  <option v-for="o in OWNERS" :key="o" :value="o">{{ o }}</option>
                 </select>
               </div>
 
@@ -953,7 +1022,7 @@ function pct (val) { return (((val - 1) / 4) * 100) }
               <span class="tdot" :style="{ background: typeColor(hovered.card.type) }" />
               <strong>{{ hovered.card.titre }}</strong>
             </div>
-            <div class="tip-meta">{{ hovered.card.equipe }} · {{ typeLabel(hovered.card.type) }}</div>
+            <div class="tip-meta">{{ hovered.card.equipe }} · {{ typeLabel(hovered.card.type) }}<template v-if="hovered.card.owner"> · {{ hovered.card.owner }}</template></div>
             <div class="tip-grid">
               <span>Douleur <b>{{ hovered.card.douleur }}</b></span>
               <span>Impact <b>{{ hovered.card.impact }}</b></span>
@@ -972,7 +1041,7 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                   <svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" /></svg>
                 </button>
               </div>
-              <div class="ep-meta">{{ selectedCard.equipe }} · {{ typeLabel(selectedCard.type) }}</div>
+              <div class="ep-meta">{{ selectedCard.equipe }} · {{ typeLabel(selectedCard.type) }}<template v-if="selectedCard.owner"> · {{ selectedCard.owner }}</template></div>
               <div class="ratings">
                 <div v-for="r in RATINGS" :key="r.key" class="rating">
                   <div class="rating-top"><span class="r-lbl">{{ r.label }}</span><span class="r-val">{{ selectedCard[r.key] }}</span></div>
@@ -1001,6 +1070,7 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                 <span class="prio-tags">
                   <span class="tag">{{ row.card.equipe }}</span>
                   <span class="tag" :style="{ '--c': typeColor(row.card.type) }">{{ typeLabel(row.card.type) }}</span>
+                  <span v-if="row.card.owner" class="owner-tag" :title="'Owner : ' + row.card.owner"><span class="ava" :style="{ background: ownerColor(row.card.owner) }">{{ row.card.owner[0] }}</span>{{ row.card.owner }}</span>
                 </span>
               </div>
               <div class="bar"><span class="bar-fill" :style="{ width: row.pct + '%', background: typeColor(row.card.type) }" /></div>
@@ -1073,6 +1143,7 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                     <div class="sc-meta">
                       <span class="tag">{{ c.equipe }}</span>
                       <span class="tag" :style="{ '--c': typeColor(c.type) }">{{ typeLabel(c.type) }}</span>
+                      <span v-if="c.owner" class="owner-tag" :title="'Owner : ' + c.owner"><span class="ava" :style="{ background: ownerColor(c.owner) }">{{ c.owner[0] }}</span>{{ c.owner }}</span>
                     </div>
                   </div>
                   <div class="sc-moves col">
@@ -1143,6 +1214,7 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                   <div class="lane-label">
                     <span class="tdot" :style="{ background: typeColor(c.type) }" />
                     <span class="ll-title">{{ c.titre }}</span>
+                    <span v-if="c.owner" class="ava sm ll-owner" :style="{ background: ownerColor(c.owner) }" :title="'Owner : ' + c.owner">{{ c.owner[0] }}</span>
                     <span class="ll-team">{{ c.equipe }}</span>
                   </div>
                   <div class="lane-track">
@@ -1188,6 +1260,33 @@ function pct (val) { return (((val - 1) / 4) * 100) }
           <div class="modal-actions">
             <button class="btn-ghost" @click="showReset = false">Annuler</button>
             <button class="btn-dark" @click="doReset">Réinitialiser</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Éditeur de détails d'un cas d'usage -->
+    <Transition name="fade">
+      <div v-if="detailCard" class="overlay" @click.self="closeDetails" @keydown.esc="closeDetails">
+        <div class="modal modal-details">
+          <div class="md-head">
+            <span class="tdot" :style="{ background: typeColor(detailCard.type) }" />
+            <h3>{{ detailCard.titre || 'Cas d’usage' }}</h3>
+            <button class="x" @click="closeDetails" aria-label="Fermer">
+              <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8" /></svg>
+            </button>
+          </div>
+          <p class="md-sub">Décrivez le cas d’usage en détail — collez vos notes, un email, un cahier des charges. Sauvegarde automatique.</p>
+          <textarea
+            ref="detailInput"
+            v-model="detailCard.details"
+            class="md-textarea"
+            placeholder="Contexte, objectif, périmètre, données concernées, critères de succès, risques…"
+          />
+          <div class="modal-actions">
+            <span class="md-count">{{ (detailCard.details || '').length }} caractères</span>
+            <button class="btn-ghost" :disabled="!(detailCard.details || '').trim()" @click="copyDetails">{{ detailCopied ? 'Copié ✓' : 'Copier' }}</button>
+            <button class="btn-dark" @click="closeDetails">Fermer</button>
           </div>
         </div>
       </div>
@@ -1425,6 +1524,27 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.02em; }
 .c-desc { width: 100%; border: none; background: transparent; font-size: 13.5px; color: var(--muted); padding: 4px 0 12px; }
 .c-desc::placeholder { color: var(--faint); }
 
+/* Bouton « notes » dans l'en-tête de carte — calqué sur .x, mais en accent quand des détails existent. */
+.c-notes {
+  border: none; background: transparent; cursor: pointer; color: var(--faint);
+  width: 26px; height: 26px; border-radius: 7px; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  transition: all .14s ease;
+}
+.c-notes svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.c-notes:hover { background: var(--accent-soft); color: var(--accent); }
+.c-notes.has { color: var(--accent); }
+/* Aperçu une ligne des détails, cliquable → ouvre la modale. Tronqué proprement. */
+.c-detail-preview {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: none; border-left: 2px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: transparent; font-family: inherit;
+  margin: 0 0 12px; padding: 1px 0 1px 10px;
+  font-size: 12.5px; line-height: 1.5; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color .14s ease, border-color .14s ease;
+}
+.c-detail-preview:hover { color: var(--ink-soft); border-left-color: var(--accent); }
+
 .card-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); margin-bottom: 14px; }
 .mini-select {
   appearance: none; -webkit-appearance: none;
@@ -1435,6 +1555,14 @@ h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.02em; }
 }
 .mini-select:hover { border-color: var(--line-strong); }
 .mini-select.type { color: var(--c); font-weight: 550; border-color: color-mix(in srgb, var(--c) 30%, var(--tint-base)); }
+.mini-select.owner.assigned { color: var(--c); font-weight: 550; border-color: color-mix(in srgb, var(--c) 30%, var(--tint-base)); }
+
+/* Owner — pastille d'identité (initiale sur fond coloré) réutilisée dans toutes les vues. */
+.ava { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font-size: 9.5px; font-weight: 700; line-height: 1; flex: none; }
+.ava.sm { width: 14px; height: 14px; font-size: 8.5px; }
+.ava.xs { width: 13px; height: 13px; font-size: 8px; }
+.owner-tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); font-weight: 540; }
+.ll-owner { margin-left: auto; }
 
 /* Ratings / sliders */
 .ratings { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 22px; }
@@ -1591,7 +1719,26 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 .modal h3 i { color: var(--accent-strong); font-style: italic; }
 .modal p { font-size: 14px; color: var(--ink-soft); line-height: 1.55; margin: 0 0 8px; }
 .info-line b { color: var(--ink); }
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+/* ── Modale de détails (éditeur focalisé) ─────────────────────────────────── */
+.modal-details { max-width: 600px; }
+.md-head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.md-head h3 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-head .x { flex: none; }
+.md-head .x:hover { background: var(--surface-2); color: var(--ink); }   /* close neutre (pas rouge) */
+.md-sub { font-size: 13px; color: var(--muted); margin: 0 0 14px; line-height: 1.5; }
+.md-textarea {
+  width: 100%; min-height: 240px; max-height: 56vh; resize: vertical; display: block;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink);
+  padding: 14px 16px; font-family: inherit; font-size: 14px; line-height: 1.65;
+  transition: border-color .14s ease, background .14s ease;
+}
+.md-textarea::placeholder { color: var(--faint); }
+.md-textarea:focus { outline: none; border-color: var(--accent); background: var(--panel); }
+.md-count { font-size: 12px; color: var(--faint); margin-right: auto; font-variant-numeric: tabular-nums; }
+.btn-ghost:disabled { opacity: .45; cursor: default; }
+.btn-ghost:disabled:hover { background: transparent; border-color: var(--line); }
 .fade-enter-active, .fade-leave-active { transition: opacity .2s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
