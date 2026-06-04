@@ -283,6 +283,11 @@ function removeCard (id) {
   if (selectedId.value === id) selectedId.value = null
 }
 
+// Sources de données par carte — éditables aussi bien en Capture que dans le Stack.
+function addSourceTo (c, id) { if (!id) return; if (!Array.isArray(c.sources)) c.sources = []; if (!c.sources.includes(id)) c.sources.push(id) }
+function removeSourceFrom (c, id) { if (Array.isArray(c.sources)) c.sources = c.sources.filter(s => s !== id) }
+function availableSources (c) { const have = new Set(c.sources || []); return stackNodes.value.filter(n => !have.has(n.id)) }
+
 function doReset () {
   cards.value = seedCards()
   stackNodes.value = STACK_NODES.map(n => ({ ...n }))
@@ -705,9 +710,13 @@ function pct (val) { return (((val - 1) / 4) * 100) }
                 </select>
               </div>
 
-              <div v-if="(c.sources || []).length" class="card-sources">
+              <div class="card-sources">
                 <span class="cs-lbl">Sources</span>
-                <span v-for="id in c.sources" :key="id" class="src-chip">{{ nodeLabel(id) }}</span>
+                <button v-for="id in (c.sources || [])" :key="id" type="button" class="src-chip rm" @click="removeSourceFrom(c, id)" :title="'Retirer ' + nodeLabel(id)">{{ nodeLabel(id) }}<span class="x-mini">✕</span></button>
+                <select class="src-add" @change="addSourceTo(c, $event.target.value); $event.target.value = ''" title="Ajouter une source de données">
+                  <option value="">+ source</option>
+                  <option v-for="n in availableSources(c)" :key="n.id" :value="n.id">{{ n.label }}</option>
+                </select>
               </div>
 
               <div class="ratings">
@@ -1717,6 +1726,9 @@ input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 
 
 .card-sources { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-bottom: 14px; margin-top: -2px; }
 .cs-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--faint); font-weight: 600; }
+.src-add { appearance: none; -webkit-appearance: none; border: 1px dashed var(--line-strong); background: transparent; border-radius: 7px; padding: 3px 10px; font-size: 11.5px; font-weight: 540; color: var(--muted); cursor: pointer; font-family: inherit; transition: border-color .14s ease, color .14s ease; }
+.src-add:hover { border-color: var(--accent); color: var(--accent); }
+.src-add:focus-visible { outline: none; border-color: var(--accent); color: var(--accent); }
 
 @media (max-width: 880px) {
   .columns { grid-template-columns: 1fr; }
