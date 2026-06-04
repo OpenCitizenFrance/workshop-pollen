@@ -18,8 +18,8 @@ export default defineNuxtConfig({
     public: {
       // Tolérant à tous les noms d'env courants (avec/sans préfixe NUXT_PUBLIC_, NEXT_PUBLIC_,
       // intégration Supabase↔Vercel). Lu au build ; Vercel fournit les vars au build.
-      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+      supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ljoamylznblbwbwjuvfg.supabase.co',
+      supabaseAnonKey: process.env.NUXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_09yGg59VebMtRnvw72dCKQ_F7m7B7z2',
       boardId: process.env.NUXT_PUBLIC_BOARD_ID || 'default',
     },
   },
